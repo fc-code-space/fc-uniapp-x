@@ -1,6 +1,6 @@
 // 20261001
-import { Store } from './stores'
-import { useFcSystemStore } from './stores/system'
+import { Store } from './store'
+import { useFcSystemStore } from './store/system'
 import { Router } from './router'
 import { FCTypeRouterConfig } from '@/modules/router'
 // import { i18n } from './i18n'
