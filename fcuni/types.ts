@@ -120,6 +120,135 @@ export type FCTypeWebSocketConfig = {
 }
 
 /* ------------------------------------------------------------------ */
+/* 应用更新                                                            */
+/* ------------------------------------------------------------------ */
+
+export interface FCTypeUpdateConfig {
+	// 检查更新接口地址；query 参数自动追加 appId / appVersion / appWgtVersion
+	checkURL ?: string
+	// 检查更新接口的额外请求头
+	headers ?: UTSJSONObject
+	// 检查更新接口的请求方法，默认 'GET'
+	method ?: 'GET' | 'POST'
+	// 自定义请求体（POST 时使用），可携带动态参数（如 channel、userId）
+	body ?: UTSJSONObject
+	// 完全接管「检查更新」的逻辑：返回 null 表示无更新，返回 PackageInfo 表示有更新
+	// 与 fetcher 二选一；fetcher 接管整个 HTTP 流程，responseParser 仅接管响应解析。
+	fetcher ?: (ctx : FCTypeUpdateCheckContext) => Promise<FCTypeUpdatePackageInfo | null>
+	// 业务侧响应解析器：把后端任意结构（如 {code, msg, data}、自定义字段名）归一化为 PackageInfo 形态。
+	// 框架会再做驼峰/下划线字段名兼容映射。
+	// 返回 null 表示无更新；有 version 但 url 为空会 reject，不会当成已是最新。
+	responseParser ?: (raw : any) => UTSJSONObject | null
+	// 业务侧成功判定：返回 false 视为失败并 reject；返回 undefined 按 HTTP 2xx 判定。
+	responseSuccess ?: (response : RequestSuccess<any>) => boolean | void
+	// 完全接管「下载安装包」的逻辑：返回本地文件路径表示完成
+	// 默认走 uni.downloadFile，可用于对接自家 CDN 签名 URL、断点续传等场景
+	downloader ?: (ctx : FCTypeUpdateDownloadContext) => Promise<string>
+	// 下载请求的额外 header（默认 downloader 走 uni.downloadFile 时生效）
+	// 业务侧可在 downloader 自定义函数里自行注入；此处是给「走默认 downloader 的鉴权 URL」用
+	downloadHeaders ?: UTSJSONObject
+	// 下载超时（毫秒），仅默认 downloader 生效；自定义 downloader 自管
+	downloadTimeout ?: number
+	// 安装方式覆盖：默认 wgt 走 uni.installWgt + SHA256 校验，apk 走 uni.installApk
+	installer ?: (ctx : FCTypeUpdateInstallContext) => Promise<FCTypeUpdateInstallResult>
+	// 检查出错回调
+	onCheckFailed ?: (event : FCTypeUpdateFailedEvent) => void
+	// 安装完成回调（wgt 等待重启生效、apk 已弹出安装器）
+	onUpdateReady ?: (event : FCTypeUpdateReadyEvent) => void
+	// 安装 / 下载 / 校验失败回调
+	onUpdateFailed ?: (event : FCTypeUpdateFailedEvent) => void
+}
+
+// 弹窗文案 / 多语言由 components/fc-dialog/update.uvue 自身维护，
+// 业务侧可直接修改该文件，或通过 FC.i18n 在该文件中走国际化。
+
+// 检查更新时的运行时上下文：传给业务 fetcher
+export interface FCTypeUpdateCheckContext {
+	appId : string
+	appVersion : string
+	appWgtVersion : string
+}
+
+// 下载上下文
+export interface FCTypeUpdateDownloadContext {
+	packageInfo : FCTypeUpdatePackageInfo
+	onProgress ?: (event : FCTypeUpdateDownloadProgress) => void
+}
+
+// 下载进度事件
+export interface FCTypeUpdateDownloadProgress {
+	totalBytesWritten : number
+	totalBytesExpectedToWrite : number
+	progress : number
+}
+
+// 安装上下文
+export interface FCTypeUpdateInstallContext {
+	packageInfo : FCTypeUpdatePackageInfo
+	filePath : string
+}
+
+// 安装结果
+export interface FCTypeUpdateInstallResult {
+	ok : boolean
+	alreadyLatest ?: boolean
+	message ?: string
+}
+
+// 服务器返回的安装包信息
+export interface FCTypeUpdatePackageInfo {
+	// 资源版本号（wgt 包版本号 / apk 版本名）
+	version : string
+	// 安装包 / 跳转链接：
+	//   - .wgt 后缀：热更新包下载地址
+	//   - .apk 后缀 + Android：整包直接走 uni.installApk
+	//   - 其它（iOS / Harmony apk 跳转商店、自定义 scheme）：由弹窗跳转
+	url : string
+	// 安装包类型：wgt = 热更新资源包；native_app = 整包（apk）
+	type : 'wgt' | 'native_app'
+	// 是否强制更新
+	isMandatory : boolean
+	// 是否静默更新（仅安装，不提示不重启）
+	isSilent : boolean
+	// 更新标题（弹窗顶部）
+	title : string
+	// 更新日志（弹窗中部）
+	contents : string
+	// 当前版本低于该值时强制整包更新（可选，框架不会自动校验，由服务端按 appVersion 计算后回填 isMandatory）
+	minRequiredVersion : string | null
+	// wgt 资源包 SHA256（type='wgt' 时必填，安装前完整性校验用）
+	sha256 : string | null
+	// 安装包体积（人类可读，如 "36.8 MB"）
+	size : string | null
+}
+
+// 检查事件：hasUpdate=true 时 packageInfo 一定有值
+export interface FCTypeUpdateCheckEvent {
+	hasUpdate : boolean
+	packageInfo : FCTypeUpdatePackageInfo | null
+	checkId : number
+}
+
+// 资源包已就绪事件（wgt 安装成功，等待重启；apk 已交给系统安装器）
+export interface FCTypeUpdateReadyEvent {
+	packageInfo : FCTypeUpdatePackageInfo
+	status : 'installed'
+	activation : 'restart-required' | 'installer-launched'
+	taskId : string
+}
+
+// 失败事件：覆盖 check / download / verify / install / apply 阶段
+export interface FCTypeUpdateFailedEvent {
+	taskId : string
+	checkId : number
+	packageInfo : FCTypeUpdatePackageInfo | null
+	stage : 'check' | 'download' | 'verify' | 'install' | 'apply'
+	code : number | string | null
+	message : string
+	retryable : boolean
+}
+
+/* ------------------------------------------------------------------ */
 /* UniPush 2.0                                                         */
 /* ------------------------------------------------------------------ */
 

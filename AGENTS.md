@@ -28,7 +28,7 @@ fcuni 是项目自带的封装框架，封装了路由、状态管理、网络�
 
 ## FC 全局对象
 
-fcuni 通过 `FC.*` 全局对象暴露所有能力（无需 import）。**导出完全对应 `fcuni/index.ts` 第 28-46 行的对象字面量**（驼峰命名）：
+fcuni 通过 `FC.*` 全局对象暴露所有能力（无需 import）。**导出与 `fcuni/index.ts` 末尾 `export const FC = { ... }` 一致**（驼峰命名）：
 
 | FC.* | 模块 | 用途 |
 |------|------|------|
@@ -47,11 +47,79 @@ fcuni 通过 `FC.*` 全局对象暴露所有能力（无需 import）。**导出
 | `FC.Permission` | permission | 系统权限管理 |
 | `FC.Tool` | tool | 防抖 / 节流 / UUID / 克隆 / 图片压缩 / 取色 |
 | `FC.UniPush` | push | 推送封装 |
-| `FC.Update` | update | 应用更新（**当前为占位空壳**，无 API） |
+| `FC.Update` | update | 应用更新（**仅 uni-app x 蒸汽模式**：vapor 安卓 / iOS / Harmony） |
 
 > **AI 必须遵守**：当 fcuni 已封装的能力，禁止直接 import uni-app x 底层 API 重写实现。详见下方「fcuni 已封装的 uni.* API 速查表」。
 >
 > **业务 Store 命名约定**：`FC.useFcSystemStore` 是框架内建的；业务 Store（用户、订单等）写在 `modules/stores/<业务>.ts`，导出 `useXxxStore`（**不带 `Fc` 前缀**，例 `useUserStore`），不要加到 `FC.*`。
+
+## FC 自动注入机制（重要）
+
+**业务代码不需要 `import { FC } from '@/fcuni'`**。`fcuni/tool/fc-auto-import.cjs`（vite.config.ts 顶部 require）在编译期给所有业务源文件自动注入这一行。
+
+规则（AI 必须遵守）：
+
+- ❌ **不要在业务代码里手写 `import { FC } from '@/fcuni'`**。自动注入会跳过已声明 `FC` 的文件，但手写 + 自动注入任意一种重复触发都可能引发 UTS 模块解析错误。
+- ❌ **不要在 `App.uvue` / `App.vue` 里 import 任何东西**（`defineApp` 不允许 import）。
+- ❌ **不要修改 `fcuni/tool/fc-auto-import.cjs`**。它是 fcuni 框架核心机制。
+- ✅ **类型需要显式 `import type`**：`FCTypeThemeSetting` / `FCTypeRouterConfig` / `FCTypeWebSocketConfig` / `FCStreamController` 等常驻类型在 `fcuni/types.ts`，业务代码里要显式 `import type { Xxx } from '@/fcuni/types'`。自动注入只注入 `FC` 值，不注入类型。
+
+例：
+
+```vue
+<!-- ✅ 标准 .uvue 文件 — 不写 import FC -->
+<script setup lang="ts">
+import type { FCTypeThemeSetting } from '@/fcuni/types'
+
+const t = (key: string) => FC.i18n.t(key)
+const fcSystemStore = FC.useFcSystemStore()
+
+const setTheme = (value: FCTypeThemeSetting) => {
+  FC.Theme.setTheme(value)
+}
+</script>
+```
+
+<!-- 编译后实际产物 -->
+
+```vue
+<script setup lang="ts">
+import { FC } from '@/fcuni'
+import type { FCTypeThemeSetting } from '@/fcuni/types'
+// ...
+</script>
+```
+
+自动注入的跳过条件（无需 AI 关心，但要知道）：
+- `App.uvue` / `App.vue` —— `defineApp` 不允许 import
+- `fcuni/` 自身 —— 避免循环依赖
+- `uni_modules/`、`node_modules/` —— 第三方模块
+- `.d.ts`、带 `?` 的子请求 —— 类型声明和运行时子请求
+
+## fcuni 未封装能力（继续走 uni-agent 内置 skill）
+
+fcuni 只封装高频基础能力（路由、状态、网络、主题、i18n、权限、隐私、推送、工具）。**fcuni 没覆盖的领域继续走 uni-agent 内置 skill**，不要"自己写一套"：
+
+| 领域 | 触发词 | 走哪个 uni-agent skill |
+|------|------|------|
+| 使用 easycom 组件 / uni-ui | easycom / uni-ui | `easycom-component-usage` |
+| 添加 / 排查 uni_modules 插件 | uni_modules / 插件 | `find-matching-plugin` + `how-to-use-uni-module` |
+| 编写 / 排查 UTS 原生插件 | UTS 插件 / native plugin | `how-to-write-uts-plugin` |
+| uniCloud 云函数 / 云对象 | 云函数 / 云对象 / 云开发 | `how-to-write-unicloud-backend`（子 agent 委派） |
+| JQL 数据库 | JQL / clientDB / 数据库 | `how-to-write-unicloud-jql`（子 agent 委派） |
+| 截图 / 调试 / 看日志 | 截图 / logcat / 控制台报错 | `capture-app-screenshots` / `logcat-uniapp-or-uniappx` / `fix-console-error-uniapp-or-uniappx` |
+| 运行 / 打包 | 运行 / 启动 / 打包 | `launch-uniapp-or-uniappx` |
+| uni-app x 最佳实践 / 跨端 / 布局 / 坑点 | 布局 / flex / 跨端 / 蒸汽模式 | `uniappx-best-practices` / `uniappx-pitfalls-and-tips` / `uniappx-layout` / `uniappx-cross-platform-guide` |
+| 设计稿还原 | 设计稿 / 实现设计图 | `implement-design-image-for-uniapp` |
+| 编写测试用例 | 测试 / 自动化测试 | `write-or-run-testcase-for-uniapp-or-uniappx` |
+| 校验语法 / 编译 | 语法检查 / 编译错误 | `uniappx-syntax-checker` / `verify-uniappx-compile-error` |
+| 包体积优化 | 优化包 / 减小主包 | `optimize-subpackage` |
+| 提交 issue / 反馈 bug | 提 issue / bug 反馈 | `submit-issue-report` |
+
+要点：
+- **fcuni 是基础能力封装，不是"全栈框架"**。涉及框架特定能力、跨端适配、布局、UI 组件等场景，仍走 uni-agent 内置 skill。
+- **写业务代码前**，如果场景不在 fcuni 范围内，先调对应的内置 skill，不要凭训练时的通用知识直接写。
+- **遇到 fcuni 与内置 skill 的写法冲突**，以 fcuni 为准（例如：fcuni 已封装 `uni.request` → 走 `FC.Request`，内置 skill 文档里的"用 uni.request"在 fcuni 项目里改写为 FC.Request）。
 
 ## fcuni 文档召回协议（核心规则）
 
@@ -82,7 +150,7 @@ fcuni 通过 `FC.*` 全局对象暴露所有能力（无需 import）。**导出
 | permission | 按需 | `fcuni/permission/permission.md` | 权限 / 申请 / 授权 / 拒绝 | 申请相机/相册/位置等权限 |
 | privacy | 按需 | `fcuni/privacy/privacy.md` | 隐私 / 合规 / 用户协议 / 隐私政策 | 隐私弹窗、协议同意 |
 | push | 按需 | `fcuni/push/push.md` | 推送 / push / 通知 / 角标 | 注册推送、监听消息 |
-| update | 按需 | （**当前为空壳**，无文档） | 更新 / app 更新 / 版本检查 | 当前 `FC.Update` 类无 API，**禁止业务代码依赖** |
+| update | 按需 | `fcuni/update/update.md` | 更新 / app 更新 / 版本检查 / wgt / 热更新 / apk / 强制更新 | 检查更新（`check` / `checkAndShow`）、下载安装包（`download` / `install` / `restart`）、跳转应用商店（`jumpToStore`）、Android 通知栏进度（`startNotificationDownload`）、事件订阅（`onCheck` / `onReady` / `onFailed`）。**响应解析**走 `responseParser` / `responseSuccess`（仿 `FCRequestConfig`），业务侧把 `{code, msg, data}` 任意结构归一化为 PackageInfo；**最终是否更新仍由框架按 `version + url` 判定** |
 
 ### 召回后必须遵守的硬约束
 
@@ -106,7 +174,7 @@ fcuni 通过 `FC.*` 全局对象暴露所有能力（无需 import）。**导出
 
 | 路径 | 作用 | 是否可编辑 |
 |------|------|----------|
-| `App.uvue` | 应用入口，fcuni 在此挂载 i18n 等 | 编辑业务初始化逻辑 |
+| `App.uvue` | 应用入口，fcuni 在此挂载 i18n 等（**不允许 import**，见「FC 自动注入机制」节） | 编辑业务初始化逻辑 |
 | `main.uts` | 主入口 | 一般不编辑 |
 | `manifest.json` | 应用配置 | 编辑应用元信息 |
 | `pages.json` | 页面路由配置 | 新增页面时必须编辑 |
@@ -115,6 +183,7 @@ fcuni 通过 `FC.*` 全局对象暴露所有能力（无需 import）。**导出
 | `modules/i18n/index.ts` | 语言注册 | 新增语言时编辑 |
 | `fcuni/<模块>/index.ts`（或 `<模块>.ts`，按模块约定） | 框架代码 | ❌ 由 fc-cli 生成，勿手改 |
 | `fcuni/<模块>/<模块>.md` | AI 文档 | ❌ AI 召回用，勿删 |
+| `fcuni/tool/fc-auto-import.cjs` | 编译期自动注入 `import { FC }` | ❌ 核心机制，勿修改 |
 
 ## uni-app x 关键约束（与 fcuni 共用）
 
@@ -135,6 +204,7 @@ fcuni 通过 `FC.*` 全局对象暴露所有能力（无需 import）。**导出
 | `FC.UniPush.*` | `uni.onPushMessage` / `uni.offPushMessage` / `uni.createPushMessage` |
 | `FC.Permission.init` / `FC.Permission.destroy` / `FC.Permission.MPShowAuthorize` | `uni.requestSystemPermission`（Android 拦截）/ `uni.openAppAuthorizeSetting`（小程序拒绝引导） |
 | `FC.Privacy.open` / `FC.Privacy.markClosed` | `uni.openDialogPage`（隐私弹窗）+ `uni.getPrivacySetting`（状态查询） |
+| `FC.Update.check` / `download` / `install` / `restart` / `jumpToStore` | `uni.downloadFile`（wgt / apk 下载）+ `uni.installWgt`（vapor wgt 安装）+ `uni.installApk`（apk 安装）+ `uni.openDialogPage`（升级弹窗）+ `getApp().restart()`（vapor 重启）。应用商店跳转与系统通知栏进度复用 `uni_modules/uts-openSchema` 与 `uni_modules/uts-progressNotification` |
 | `FC.useFcSystemStore()` | **不要绕过 store 直接改状态**（如 `FC.i18n.instance.global.locale.value = 'en'`） |
 | `FC.Tool.*`（防抖/节流/UUID/克隆/图片压缩/取色等） | 自己写 `setTimeout` / 自实现图片压缩逻辑 |
 
@@ -169,6 +239,8 @@ fcuni 通过 `FC.*` 全局对象暴露所有能力（无需 import）。**导出
 ## 绝对禁止（违反需用户确认）
 
 - ❌ **修改 `fcuni/` 下任何代码或文档**：包括 `fcuni/<模块>/index.ts`（或 `<模块>.ts`，按模块约定）、`fcuni/<模块>/<模块>.md`、`fcuni/tool/`、`fcuni/types.ts`。这些都是 fc-cli 生成的产物，**直接修改会被下轮 fc-cli 覆盖丢失**。
+- ❌ **业务代码手写 `import { FC } from '@/fcuni'`**（见「FC 自动注入机制」节）。
+- ❌ **在 `App.uvue` / `App.vue` 里 import 任何东西**（`defineApp` 不允许 import）。
 - ❌ **跳过 fcuni 已封装的 API，直接调底层**（见「fcuni 已封装的 uni.* API 速查」节）。
 - ❌ **硬编码颜色值或 `#hex` 颜色字面量**（含 `<style>` 块、UnoCSS 类属性 `bg-[#fff]` 等）。主题场景用主题类，非主题场景用 UnoCSS 通用色。
 

@@ -24,20 +24,20 @@ FC-UniApp-X 是一套面向 uni-app x 蒸汽模式 的开箱即用框架。把�
 
 | 模块 | 说明 | 支持平台 | 默认集成 | 可移除 |
 | --- | --- | --- | --- | --- |
-| `store` | [状态管理](/guide/base/store) | 随项目 | 是 | 否 |
-| `router` | [路由](/guide/base/router) | 随项目 | 是 | 否 |
-| `tool` | [工具类](/guide/base/util) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
-| `i18n` | [多语言](/guide/base/i18n) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
-| `theme` | [应用主题](/guide/base/theme) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
-| `request` | [网络请求](/guide/base/request) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
-| `upload` | [网络上传](/guide/base/upload) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
-| `download` | [网络下载](/guide/base/download) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
-| `stream` | [流式响应](/guide/base/stream) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
-| `websocket` | [WebSocket](/guide/base/websocket) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
-| `privacy` | [隐私协议](/guide/base/privacy) | iOS、Android、鸿蒙 OS | 否 | 是 |
-| `permission` | [系统权限](/guide/base/permission) | iOS、Android、鸿蒙 OS | 否 | 是 |
-| `push` | [通知推送](/guide/base/push) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
-| `update` | [应用更新](/guide/base/update) | iOS、Android、鸿蒙 OS | 否 | 是 |
+| `store` | [状态管理](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/store) | 随项目 | 是 | 否 |
+| `router` | [路由](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/router) | 随项目 | 是 | 否 |
+| `tool` | [工具类](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/util) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
+| `i18n` | [多语言](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/i18n) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
+| `theme` | [应用主题](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/theme) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
+| `request` | [网络请求](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/request) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
+| `upload` | [网络上传](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/upload) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
+| `download` | [网络下载](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/download) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
+| `stream` | [流式响应](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/stream) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
+| `websocket` | [WebSocket](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/websocket) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
+| `privacy` | [隐私协议](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/privacy) | iOS、Android、鸿蒙 OS | 否 | 是 |
+| `permission` | [系统权限](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/permission) | iOS、Android、鸿蒙 OS | 否 | 是 |
+| `push` | [通知推送](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/push) | iOS、Android、鸿蒙 OS、Web、微信小程序 | 否 | 是 |
+| `update` | [应用更新](https://lfcleo.github.io/fc-uniapp-x-doc/guide/base/update) | iOS、Android、鸿蒙 OS | 否 | 是 |
 
 ## 🤖 写给 AI 的框架
 
